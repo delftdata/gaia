@@ -2,7 +2,7 @@
 
 For the 'real' data, we need to run our experiments on a true cloud environment, such as AWS. This folder contains some scripts for launching and setting up an AWS cluster.
 
-1. Spawn the cluster (from your own machine) `python3 aws/launch_cluster.py -a start -rc aws/aws.json -n 2 -vm m4.2xlarge`
+1. Spawn the cluster (from your own machine) `python3 aws/launch_cluster.py -a start -rc aws/aws_large.json -ns 4 -vm r5.4xlarge`
     1. Choose the cluster architecture in the `.json` file.
     2. Use the `-n` param for the number of servers per region.
     3. Use the `-vm` param to choose the VM type.
