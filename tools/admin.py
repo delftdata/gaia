@@ -28,8 +28,8 @@ LOG = logging.getLogger("admin")
 
 SSH = 'ssh "-o StrictHostKeyChecking no"'
 
-DEFAULT_USER = "omraz"
-DEFAULT_SLOG_IMG = "omraz/seq_eval:latest"
+DEFAULT_USER = "USERNAME"
+DEFAULT_SLOG_IMG = "USERNAME/seq_eval:latest"
 
 VALID_WORKLOADS = ["basic", "cockroach", "remastering", "tpcc", "movr", "pps", "movie", "dsh", "smallbank"]
 

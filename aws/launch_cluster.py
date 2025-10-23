@@ -558,7 +558,7 @@ def copy_keys_to_all_vms(region_ips, single_region, key_base_dir='keys/', remote
                     print(f"⚠️ Failed to copy {key_path} to {ip}: {err[0]}")
             print(f"✅ Copied all keys to {ip}")
 
-def spawn_db_service(workload='YCSB', image='omraz/seq_eval:latest'):
+def spawn_db_service(workload='YCSB', image='USERNAME/seq_eval:latest'):
     spawn_db_service_cmd = "python3.8 tools/admin.py start --image {} examples/{}.conf -u ubuntu -e GLOG_v=1"
     if workload == 'YCSB':
         print("Spawning YCSB-T DB service")
@@ -586,7 +586,7 @@ if __name__ == "__main__":
     parser.add_argument("-rc", "--regions_config", default="aws/aws_large.json", help="Path to the AWS regions config file.")
     parser.add_argument("-dc", "--database_configs", default="aws/conf_files", help="Path to the folder with all conf files for the experiment.")
     parser.add_argument("-sc", "--system_config", default="aws/conf_files/ycsb/tu_cluster_ycsb_ddr_ts.conf", help="Path to the conf file for the db system to launch.")
-    parser.add_argument("-i",  "--image", default="omraz/seq_eval:latest", help="Docker image to use.")
+    parser.add_argument("-i",  "--image", default="USERNAME/seq_eval:latest", help="Docker image to use.")
     parser.add_argument("-ns", "--num_servers", default=2, type=int, help="No. of server instances to spawn per region.")
     parser.add_argument("-nc", "--num_clients", default=1, type=int, help="No. of client instances to spawn per region.")
     parser.add_argument("-sm", "--server_vm_type", default=DEFAULT_VM_TYPE, choices=SUPPORTED_VM_TYPES, help="AWS VM type to use for the experiment.")

@@ -104,8 +104,8 @@ The complete instructions about setting up the Python environment and all the cu
 
 In case of PPS, here is an example of the step-by-step instructions followed to generate the final results for Detock in the baseline scenario. For the other databases and scenarios, the workflow is identical with small modifications: change the configuration file, change the database binary, change the database name, and tweak the number of clients based on the scalability scenario (the scalability scenario doesn't require a predefined number of clients, and will give use the appropriate number of clients for each system, such that it won't be overwhelmed or undersaturated).
 
-1. Spin up the cluster using the command: `python3.8 tools/admin.py start --image emihai1/detock:latest --user emihai --bin slog examples/pps/tu_cluster_detock.conf`.
-2. Verify that all the server machines are running as intended using the command: `python3.8 tools/admin.py status --image emihai1/detock:latest --user emihai examples/pps/tu_cluster_detock.conf`.
-3. Run the scenario with the command: `python3.8 tools/run_config_on_remote.py -s baseline -w pps -c examples/pps/tu_cluster_detock.conf -i emihai1/detock:latest -d 60 -u emihai -m st1 --clients 1000 --generators 1 -db Detock --trial_tag final`. The results should be generated in the folder `data/pps/baseline/final`.
+1. Spin up the cluster using the command: `python3.8 tools/admin.py start --image USERNAME/detock:latest --user USERNAME --bin slog examples/pps/tu_cluster_detock.conf`.
+2. Verify that all the server machines are running as intended using the command: `python3.8 tools/admin.py status --image USERNAME/detock:latest --user USERNAME examples/pps/tu_cluster_detock.conf`.
+3. Run the scenario with the command: `python3.8 tools/run_config_on_remote.py -s baseline -w pps -c examples/pps/tu_cluster_detock.conf -i USERNAME/detock:latest -d 60 -u USERNAME -m st1 --clients 1000 --generators 1 -db Detock --trial_tag final`. The results should be generated in the folder `data/pps/baseline/final`.
 4. Copy the results to the `plots/` folder to process them using the command: `mkdir -p plots/raw_data/pps/baseline && cp -r data/pps/baseline/final/. plots/raw_data/pps/baseline`.
 5. Create the plots using the command: `python3.8 plots/extract_exp_results.py -s baseline -w pps -sa 1`.

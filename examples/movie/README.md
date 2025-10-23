@@ -1,11 +1,7 @@
 
 # DeathStar Movie Benchmark
 
-  
-
 The DeathStar movie benchmark simulates a IMDB-like movie review site. Its workload consists of submitting new reviews.
-
-  
 
 ## Schema
 
@@ -14,8 +10,6 @@ The DeathStar movie benchmark simulates a IMDB-like movie review site. Its workl
 *  **User**: stores information about the users. 1000 users are loaded as initial data.
 
 *  **Review**: stores the reviews that the users have submitted
-
-  
 
 ## Transactions
 This benchmark includes only one transaction:
@@ -68,25 +62,23 @@ The movie benchmark supports the following systems: Detock, Calvin, SLOG and Jan
 
 The following is an example of running a full scenario of the DeathStar Movie benchmark. Here we test the baseline scenario on the Detock system.
 
-
-
 1. SSH into one of the ST machines.
 2. Start the cluster:
 ```bash
-$ python3 tools/admin.py start --image samnl3000/detock:latest examples/movie/tu_cluster_movie_ddr_ts.conf -u svandenhouten -e GLOG_v=1 --bin slog
+$ python3 tools/admin.py start --image USERNAME/detock:latest examples/movie/tu_cluster_movie_ddr_ts.conf -u USERNAME -e GLOG_v=1 --bin slog
 ```
 3. Verify the cluster is running correctly:
 ```bash
-$ python3 tools/admin.py status --image samnl3000/detock:latest examples/movie/tu_cluster_movie_ddr_ts.conf -u svandenhouten
+$ python3 tools/admin.py status --image USERNAME/detock:latest examples/movie/tu_cluster_movie_ddr_ts.conf -u USERNAME
 ```
 4.  Run the scenario:
 ```bash
-$ python3 tools/run_config_on_remote.py -s baseline -w movie -u svandenhouten -m st1 -c examples/movie/tu_cluster_movie_ddr_ts.conf -i samnl3000/detock:latest -w movie -db Detock
+$ python3 tools/run_config_on_remote.py -s baseline -w movie -u USERNAME -m st1 -c examples/movie/tu_cluster_movie_ddr_ts.conf -i USERNAME/detock:latest -w movie -db Detock
 ```
 5. After it has finished, exit the SSH session.
 6. Copy the results to your local machine:
 ```bash
-$ scp -r st1:/home/svandenhouten/Detock/data/movie/baseline plots/raw_data/movie
+$ scp -r st1:/home/USERNAME/Detock/data/movie/baseline plots/raw_data/movie
 ```
 7. Generate a plot from the results:
 ```bash

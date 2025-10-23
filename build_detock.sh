@@ -1,7 +1,7 @@
 #!/bin/bash
 
 IMAGE_NAME=${1:-detock}
-BASE_REPO_ADDRESS=${2:-omraz}
+BASE_REPO_ADDRESS=${2:-USERNAME}
 REPO_NAME=${3:-seq_eval}
 
 # Create a Python 3.8 virtual environment if it doesn't already exist

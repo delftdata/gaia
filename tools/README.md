@@ -12,11 +12,11 @@ Note: If you are running these experiments on the ST machines: ssh into one of t
     1. Make sure your `.conf` file has the correct partitioning. This is different for each DB system that you test.
     2. Make sure you select the correct binary. This is different for some of the DB systems.
     3. Please use the ports assigned to you so your experiments don't interfere with those of other people.
-    4. Run the final command. E.g., (for an ST cluster setup) `python3 tools/admin.py start --image omraz/seq_eval:latest examples/ycsb/tu_cluster_ycsb_ddr_ts.conf -u omraz -e GLOG_v=1 --bin slog`
-3. Check the status for any errors `python3 tools/admin.py status --image omraz/seq_eval:latest examples/ycsb/tu_cluster_ycsb_ddr_ts.conf -u omraz` Should look something like this: 
+    4. Run the final command. E.g., (for an ST cluster setup) `python3 tools/admin.py start --image USERNAME/seq_eval:latest examples/ycsb/tu_cluster_ycsb_ddr_ts.conf -u USERNAME -e GLOG_v=1 --bin slog`
+3. Check the status for any errors `python3 tools/admin.py status --image USERNAME/seq_eval:latest examples/ycsb/tu_cluster_ycsb_ddr_ts.conf -u USERNAME` Should look something like this: 
 ![Successful status](status_command_output.png)
-4. Run a single experiment. E.g., `python3 tools/admin.py benchmark --image omraz/seq_eval:latest examples/ycsb/tu_cluster_ycsb_ddr_ts.conf -u omraz --txns 2000000 --seed 1 --clients 3000 --duration 60 --generators 2 -wl basic --param "mh=50,mp=50" 2>&1 | tee benchmark_cmd.log`
-5. Once you are done with your experiments, stop the cluster. E.g., `python3 tools/admin.py stop --image omraz/seq_eval:latest examples/ycsb/tu_cluster_ycsb_ddr_ts.conf -u omraz`
+4. Run a single experiment. E.g., `python3 tools/admin.py benchmark --image USERNAME/seq_eval:latest examples/ycsb/tu_cluster_ycsb_ddr_ts.conf -u USERNAME --txns 2000000 --seed 1 --clients 3000 --duration 60 --generators 2 -wl basic --param "mh=50,mp=50" 2>&1 | tee benchmark_cmd.log`
+5. Once you are done with your experiments, stop the cluster. E.g., `python3 tools/admin.py stop --image USERNAME/seq_eval:latest examples/ycsb/tu_cluster_ycsb_ddr_ts.conf -u USERNAME`
 
 We will test on the following systems:
 
@@ -29,8 +29,8 @@ We will test on the following systems:
 ## Running a whole scenario (with multiple x-values)
 
 1. Spin up the cluster as above if you heaven't already done so.
-2. Run a single scenario (you will have to tweak this script to work for your scenario) `python3 tools/run_config_on_remote.py -i [docker_image] -m [machine] -s [scenario] -w [workload] -c [conf_file] -u [username] -db [database_system]` (see file for full list of params). For example, `python3 tools/run_config_on_remote.py -i omraz/seq_eval:latest -m st5 -s baseline -w ycsb -c examples/ycsb/tu_cluster_ycsb_ddr_ts.conf -u omraz -db Detock`
-3. Collect results from remote machine. E.g., `scp -r st5:/home/omraz/Detock/data/packet_loss plots/raw_data/st/ycsb`. Your log files should end up in `plots/raw_data/{environment}/{workload}/{scenario}`
+2. Run a single scenario (you will have to tweak this script to work for your scenario) `python3 tools/run_config_on_remote.py -i [docker_image] -m [machine] -s [scenario] -w [workload] -c [conf_file] -u [username] -db [database_system]` (see file for full list of params). For example, `python3 tools/run_config_on_remote.py -i USERNAME/seq_eval:latest -m st5 -s baseline -w ycsb -c examples/ycsb/tu_cluster_ycsb_ddr_ts.conf -u USERNAME -db Detock`
+3. Collect results from remote machine. E.g., `scp -r st5:/home/USERNAME/Detock/data/packet_loss plots/raw_data/st/ycsb`. Your log files should end up in `plots/raw_data/{environment}/{workload}/{scenario}`
 4. Process the results (you will have to tweak this script to work for your scenario) `python3 plots/extract_exp_results.py -s [scenario] -w [workload] -e [environment]` For example, `python3 plots/extract_exp_results.py -s baseline -w ycsb -e st`
 
 This should produce your plots.
@@ -45,7 +45,7 @@ The `tools/run_all_systems_on_remote.py` script will handle the spining up and t
 
 `python3 tools/run_all_systems_on_remote.py -i [docker_image] -m [machine] -s [scenario] -w [workload] -cf [conf_file_folder] -u [username]`
 
-For example: `python3 tools/run_all_systems_on_remote.py -i omraz/seq_eval:latest -m st5 -s lat_breakdown -w ycsb -cf examples/ycsb/lat_breakdown -u omraz`
+For example: `python3 tools/run_all_systems_on_remote.py -i USERNAME/seq_eval:latest -m st5 -s lat_breakdown -w ycsb -cf examples/ycsb/lat_breakdown -u USERNAME`
 
 ## Using tmux
 
@@ -63,7 +63,7 @@ In general you may want to interact with `tmux` using [keyboard shortcuts](https
 
 Check who is logged in in Docker: `docker info | grep Username`. If needed use `docker login` to login.
 
-Check if you can pull your Detock Docker image, e.g., `docker image pull omraz/seq_eval:latest`
+Check if you can pull your Detock Docker image, e.g., `docker image pull USERNAME/seq_eval:latest`
 
 Enter Docker container: `docker exec -it [container_name] bash`
 

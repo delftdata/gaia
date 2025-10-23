@@ -1,5 +1,5 @@
 {
-  "username": "omraz",
+  "username": "USERNAME",
   "sample": 10,
   "regions": ["global"],
   "num_replicas": {
@@ -42,7 +42,7 @@
     "servers": [
       { 
         "config": "ycsb/calvin.conf",
-        "image": "omraz/seq_eval:latest"
+        "image": "USERNAME/seq_eval:latest"
       }
     ],
     "workload": "basic",
@@ -57,7 +57,7 @@
     "servers": [
       {
         "config": "ycsb/calvin.conf",
-        "image": "omraz/seq_eval:latest"
+        "image": "USERNAME/seq_eval:latest"
       }
     ],
     "workload": "basic",
@@ -74,7 +74,7 @@
     "servers": [
       {
         "config": "tpcc/calvin.conf",
-        "image": "omraz/seq_eval:latest"
+        "image": "USERNAME/seq_eval:latest"
       }
     ],
     "workload": "tpcc",

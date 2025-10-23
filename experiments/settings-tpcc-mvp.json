@@ -1,5 +1,5 @@
 {
-  "username": "omraz",
+  "username": "USERNAME",
   "sample": 10,
   "trials": 1,
   "regions": [
@@ -69,7 +69,7 @@
     "servers": [
       {
         "config": "tpcc/ddr_ts.conf",
-        "image": "omraz/seq_eval:latest"
+        "image": "USERNAME/seq_eval:latest"
       }
     ],
     "workload": "tpcc",

@@ -1,5 +1,5 @@
 {
-  "username": "omraz",
+  "username": "USERNAME",
   "sample": 10,
   "regions": [
     "us-east-1", "us-east-2", "eu-west-1", "eu-west-2", "ap-northeast-1", "ap-northeast-2", "ap-southeast-1", "ap-southeast-2"
@@ -164,15 +164,15 @@
     "servers": [
       {
         "config": "ycsb/ddr_ts.conf",
-        "image": "omraz/seq_eval:latest"
+        "image": "USERNAME/seq_eval:latest"
       },
       {
         "config": "ycsb/baseline.conf",
-        "image": "omraz/seq_eval:latest"
+        "image": "USERNAME/seq_eval:latest"
       },
       {
         "config": "ycsb/ddr_only.conf",
-        "image": "omraz/seq_eval:latest"
+        "image": "USERNAME/seq_eval:latest"
       }
     ],
     "num_log_managers": 5,
@@ -215,15 +215,15 @@
     "servers": [
       {
         "config": "ycsb/ddr_ts.conf",
-        "image": "omraz/seq_eval:latest"
+        "image": "USERNAME/seq_eval:latest"
       },
       {
         "config": "ycsb/baseline.conf",
-        "image": "omraz/seq_eval:latest"
+        "image": "USERNAME/seq_eval:latest"
       },
       {
         "config": "ycsb/ddr_only.conf",
-        "image": "omraz/seq_eval:latest"
+        "image": "USERNAME/seq_eval:latest"
       }
     ],
     "num_log_managers": 4,
@@ -254,15 +254,15 @@
     "servers": [
       {
         "config": "ycsb/ddr_ts.conf",
-        "image": "omraz/seq_eval:latest"
+        "image": "USERNAME/seq_eval:latest"
       },
       {
         "config": "ycsb/baseline.conf",
-        "image": "omraz/seq_eval:latest"
+        "image": "USERNAME/seq_eval:latest"
       },
       {
         "config": "ycsb/ddr_only.conf",
-        "image": "omraz/seq_eval:latest"
+        "image": "USERNAME/seq_eval:latest"
       }
     ],
     "workload": "basic",
@@ -279,7 +279,7 @@
     "servers": [
       {
         "config": "ycsb/ddr_ts.conf",
-        "image": "omraz/seq_eval:latest"
+        "image": "USERNAME/seq_eval:latest"
       }
     ],
     "workload": "basic",
@@ -295,7 +295,7 @@
     "servers": [
       {
         "config": "ycsb/ddr_ts.conf",
-        "image": "omraz/seq_eval:latest"
+        "image": "USERNAME/seq_eval:latest"
       }
     ],
     "workload": "basic",
@@ -311,11 +311,11 @@
     "servers": [
       {
         "config": "tpcc/baseline.conf",
-        "image": "omraz/seq_eval:latest"
+        "image": "USERNAME/seq_eval:latest"
       },
       {
         "config": "tpcc/ddr_ts.conf",
-        "image": "omraz/seq_eval:latest"
+        "image": "USERNAME/seq_eval:latest"
       }
     ],
     "workload": "tpcc",

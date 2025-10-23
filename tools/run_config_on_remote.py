@@ -17,10 +17,10 @@ parser.add_argument('-s',  '--scenario', default='skew', choices=VALID_SCENARIOS
 parser.add_argument('-w',  '--workload', default='ycsb', choices=VALID_WORKLOADS, help='Workload to run (default: ycsb)')
 parser.add_argument('-e',  '--environment', default='aws', choices=VALID_ENVIRONMENTS, help='What type of machine the experiment was run on.')
 parser.add_argument('-c',  '--conf', default='examples/tu_cluster.conf', help='.conf file used for experiment')
-parser.add_argument('-i',  '--img', default='omraz/seq_eval:latest', help='The Docker image of your built Detock system')
+parser.add_argument('-i',  '--img', default='USERNAME/seq_eval:latest', help='The Docker image of your built Detock system')
 parser.add_argument('-d',  '--duration', default=60, help='Duration (in seconds) of a single experiment')
 parser.add_argument('-dr', '--dry_run', default=False, help='Whether to run this as a dry run')
-parser.add_argument('-u',  '--user', default="omraz", help='Username when logging into a remote machine')
+parser.add_argument('-u',  '--user', default="USERNAME", help='Username when logging into a remote machine')
 parser.add_argument('-m',  '--machine', default="st5", help='The machine from which this script is (used to write out the scp command for collecting the results.)')
 parser.add_argument(       '--clients', default=3000, help='Number of clients to use for a client machine')
 parser.add_argument('-g',  '--generators', default=1, help='Number of generators to use for a client machine')
@@ -487,7 +487,7 @@ for system in systems_to_test:
             jitter = "0ms"
             loss = f"{x_val}%"
         # Note: the netem command may require allowing passwordless sudo for tc commands
-        # I.e., add something like 'omraz ALL=(ALL) NOPASSWD: /usr/sbin/tc' to 'sudo visudo'
+        # I.e., add something like 'USERNAME ALL=(ALL) NOPASSWD: /usr/sbin/tc' to 'sudo visudo'
         if scenario == 'network' or scenario == 'packet_loss':
             simulate_network.apply_netem(delay=delay, jitter=jitter, loss=loss, ips=interfaces, user=user)
             print(f"All servers simulating an additional delay of {delay}, jitter of {jitter}, and packet loss of {loss}")

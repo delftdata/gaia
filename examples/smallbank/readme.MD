@@ -27,27 +27,27 @@ The complete instructions about setting up the Python environment and all the cu
 We have the following available scenarios : baseline, skew, sunflower, scabaliblity, network, packet_loss
 
 ### (Calvin)
-1. Spin up the cluster using the command: python3 tools/admin.py start --image filipcirtog/detock-smallbank:latest  examples/smallbank/tu_cluster_smallbank_calvin.conf -u fcirtog -e GLOG_v=1 --bin slog
-2. Run the scenario with the command: python3 tools/run_config_on_remote.py -s SCENARIO -w smallbank -u fcirtog -db calvin -c examples/smallbank/tu_cluster_smallbank_calvin.conf -i filipcirtog/detock-smallbank:latest 
+1. Spin up the cluster using the command: python3 tools/admin.py start --image USERNAME/detock-smallbank:latest  examples/smallbank/tu_cluster_smallbank_calvin.conf -u USERNAME -e GLOG_v=1 --bin slog
+2. Run the scenario with the command: python3 tools/run_config_on_remote.py -s SCENARIO -w smallbank -u USERNAME -db calvin -c examples/smallbank/tu_cluster_smallbank_calvin.conf -i USERNAME/detock-smallbank:latest 
 3. Copy the results to the `plots/` folder in the `raw_data/smallbank ` directory.
 4. Create the plots using the command: python3 plots/extract_exp_results.py -s SCENARIO -w smallbank
 
 ### (SLOG)
-1. Spin up the cluster using the command: python3 tools/admin.py start --image filipcirtog/detock-smallbank:latest  examples/smallbank/tu_cluster_smallbank_slog.conf -u fcirtog -e GLOG_v=1 --bin slog
-2. Run the scenario with the command: python3 tools/run_config_on_remote.py -s SCENARIO -w smallbank -u fcirtog -db slog -c examples/smallbank/tu_cluster_smallbank_slog.conf -i filipcirtog/detock-smallbank:latest 
+1. Spin up the cluster using the command: python3 tools/admin.py start --image USERNAME/detock-smallbank:latest  examples/smallbank/tu_cluster_smallbank_slog.conf -u USERNAME -e GLOG_v=1 --bin slog
+2. Run the scenario with the command: python3 tools/run_config_on_remote.py -s SCENARIO -w smallbank -u USERNAME -db slog -c examples/smallbank/tu_cluster_smallbank_slog.conf -i USERNAME/detock-smallbank:latest 
 3. Copy the results to the `plots/` folder in the `raw_data/smallbank ` directory.
 4. Create the plots using the command: python3 plots/extract_exp_results.py -s SCENARIO -w smallbank
 
 ### (DETOCK)
 1. Spin up the cluster using the command:
-python3 tools/admin.py start --image filipcirtog/detock-smallbank:latest  examples/smallbank/tu_cluster_smallbank_detock.conf -u fcirtog -e GLOG_v=1 --bin slog
-2. Run the scenario with the command: python3 tools/run_config_on_remote.py -s SCENARIO -w smallbank -u fcirtog  -c examples/smallbank/tu_cluster_smallbank_detock.conf -i filipcirtog/detock-smallbank:latest 
+python3 tools/admin.py start --image USERNAME/detock-smallbank:latest  examples/smallbank/tu_cluster_smallbank_detock.conf -u USERNAME -e GLOG_v=1 --bin slog
+2. Run the scenario with the command: python3 tools/run_config_on_remote.py -s SCENARIO -w smallbank -u USERNAME  -c examples/smallbank/tu_cluster_smallbank_detock.conf -i USERNAME/detock-smallbank:latest 
 3. Copy the results to the `plots/` folder in the `raw_data/smallbank ` directory.
 4. Create the plots using the command: python3 plots/extract_exp_results.py -s SCENARIO -w smallbank
 
 ### (Janus)
-1. Spin up the cluster using the command: python3 tools/admin.py start --image filipcirtog/detock-smallbank:latest  examples/smallbank/tu_cluster_smallbank_janus.conf -u fcirtog -e GLOG_v=1 --bin janus
-2. Run the scenario with the command: python3 tools/run_config_on_remote.py -s SCENARIO -w smallbank -u fcirtog -db janus -c examples/smallbank/tu_cluster_smallbank_janus.conf -i filipcirtog/detock-smallbank:latest 
+1. Spin up the cluster using the command: python3 tools/admin.py start --image USERNAME/detock-smallbank:latest  examples/smallbank/tu_cluster_smallbank_janus.conf -u USERNAME -e GLOG_v=1 --bin janus
+2. Run the scenario with the command: python3 tools/run_config_on_remote.py -s SCENARIO -w smallbank -u USERNAME -db janus -c examples/smallbank/tu_cluster_smallbank_janus.conf -i USERNAME/detock-smallbank:latest 
 3. Copy the results to the `plots/` folder in the `raw_data/smallbank ` directory.
 4. Create the plots using the command: python3 plots/extract_exp_results.py -s SCENARIO -w smallbank
 
