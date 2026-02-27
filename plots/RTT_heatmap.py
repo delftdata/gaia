@@ -5,10 +5,10 @@ import seaborn as sns
 import os
 from os.path import join
 
-AVG_RTT_CSV_PATH = 'plots/data/rtt_matrix_regions.csv'
-STD_RTT_CSV_PATH = 'plots/data/rtt_std_matrix_regions.csv'
+AVG_RTT_CSV_PATH = 'plots/data/aws/rtt_matrix_aws_regions.csv'
+STD_RTT_CSV_PATH = 'plots/data/aws/rtt_std_matrix_aws_regions.csv'
 
-SOURCE_CSV_FOLDER_PATH = 'plots/data/final/rtts'
+SOURCE_CSV_FOLDER_PATH = 'plots/data/aws/rtts'
 
 # Desired order: us-west, us-east, eu-west, ap-northeast
 ordered_regions = ['usw1', 'usw2', 'use1', 'use2', 'euw1', 'euw2', 'apne1', 'apne2']
@@ -73,7 +73,7 @@ data.index = [short_region_map[name] for name in data.index]
 data = data.reindex(index=ordered_regions, columns=ordered_regions)
 
 # Plot the heatmap
-plt.figure(figsize=(5, 3))
+plt.figure(figsize=(5, 2.5))
 ax = sns.heatmap(
     data=data,  # Plot the rounded numpy data
     #annot=annot,        # Custom annotation matrix
@@ -115,7 +115,7 @@ for i in range(data.shape[0]):
             )
             # Std dev in smaller font below
             ax.text(
-                x, y + 0.2,
+                x, y + 0.25,
                 f"±{std_val:.2f}" if i == j else f"±{int(round(std_val))}",
                 ha='center', va='center',
                 fontsize=6, color=text_color
@@ -126,7 +126,7 @@ plt.gca().xaxis.set_ticks_position('top')
 plt.gca().set_xticklabels(data.columns, fontsize=9)
 plt.gca().set_yticklabels(data.index, rotation=0, fontsize=9)  # Keep region labels readable
 
-plt.tight_layout()
+plt.tight_layout(rect=[-0.025, -0.05, 1.05, 1.05]) # This doesn't seem to adjust the PDF, just the preview
 
 # Save the AVG and STD matricies
 data.to_csv(AVG_RTT_CSV_PATH)

@@ -31,8 +31,8 @@ SYSNAME_MAP = {
 
 # Argument parser
 parser = argparse.ArgumentParser(description="Decompose the latency of transactions into components and plot graph stacked bar chart.")
-parser.add_argument('-w', '--workload', default='ycsb', choices=VALID_WORKLOADS, help='Workload evaluated (default: ycsb)')
-parser.add_argument('-e', '--environment', default='aws', choices=VALID_ENVIRONMENTS, help='What type of machine the experiment was run on.')
+parser.add_argument('-w', '--workload', default='pps', choices=VALID_WORKLOADS, help='Workload evaluated (default: ycsb)')
+parser.add_argument('-e', '--environment', default='st', choices=VALID_ENVIRONMENTS, help='What type of machine the experiment was run on.')
 
 args = parser.parse_args()
 workload = args.workload

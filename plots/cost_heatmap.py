@@ -1,5 +1,4 @@
 import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
 import seaborn as sns
 import argparse
@@ -42,14 +41,6 @@ cmap.set_bad("lightgrey")
 valid_data = data_plot[data_plot != -1]
 vmin = valid_data.min().min()
 vmax = valid_data.max().max()
-
-# sns.heatmap(data_plot,  # Use the modified data with NaNs
-#             annot=annot.values,
-#             fmt="s",
-#             cmap=cmap,
-#             cbar=True,
-#             linewidths=0.5, 
-#             cbar_kws={"shrink": 1})
 
 sns.heatmap(
     data=data_plot,
