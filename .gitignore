@@ -78,8 +78,11 @@ build/*
 
 # GitHub username & token
 aws/github_credentials.json
-aws/conf_files/*/*.conf
-aws/conf_files/*/*/*.conf
+#aws/conf_files/*/*.conf
+#aws/conf_files/*/*/*.conf
+
+# CRDB license file
+crdb/crdb_license.json
 
 # Utilization logging file
 utilization.csv

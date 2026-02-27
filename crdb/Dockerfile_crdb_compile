@@ -1,0 +1,20 @@
+FROM ubuntu:22.04
+
+WORKDIR /cockroach/
+
+# Copy the binary built in Step 2
+COPY ./cockroach ./cockroach
+
+# Install runtime shared libraries required by the Cockroach binary
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    libncurses6 \
+    libtinfo6 \
+    libedit2 \
+    libc6 \
+    && rm -rf /var/lib/apt/lists/*
+
+# SQL Port and Admin UI Port
+EXPOSE 26257 8080
+
+ENTRYPOINT ["./cockroach"]
