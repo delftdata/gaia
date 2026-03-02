@@ -28,18 +28,19 @@ DEFAULT_VM_TYPE = 'r5.4xlarge'
 
 # Argument parser
 parser = argparse.ArgumentParser(description="Extract experiment results and plot graph for a given scenario.")
-parser.add_argument('-s',  '--scenario', default='vary_hw', choices=VALID_SCENARIOS, help="Type of experiment scenario to analyze (default: baseline)")
+parser.add_argument('-s',  '--scenario', default='network', choices=VALID_SCENARIOS, help="Type of experiment scenario to analyze (default: baseline)")
 parser.add_argument('-w',  '--workload', default='tpcc', choices=VALID_WORKLOADS, help="Workload to run (default: ycsb)")
 parser.add_argument('-e',  '--environment', default='aws', choices=VALID_ENVIRONMENTS, help="What type of machine the experiment was run on.")
 parser.add_argument('-it', '--instance_type', default=DEFAULT_VM_TYPE, choices=SUPPORTED_VM_TYPES, help="What type of machine the experiment was run on.")
 parser.add_argument("-sa", "--skip_aborts", default=True, help="Whether or not to plot the aborts (since most workloads don't have any).")
-parser.add_argument("-lp", "--latency_percentiles", default=DEFAULT_LAT_PERCENTILES, help="The latency percentiles to plot")
+parser.add_argument("-lp", "--latency_percentiles_list", default=DEFAULT_LAT_PERCENTILES, help="The latency percentiles to plot")
 parser.add_argument("-rt", "--use_raw_tps", default=False, help="Whether or not to use the raw or 'real' throughputs.")
 parser.add_argument("-sl", "--separate_latencies", default=False, help="Whether or not to separate latencies by txn type.")
 parser.add_argument("-la", "--latency_ablation", default=True, help="Whether or not to plot latency ablations (read vs. write and LSH vs. FSH vs. MH txns).")
 parser.add_argument("-ll", "--log_latencies", default=True, help="Whether or not to plot the latency on a log scale.")
 parser.add_argument("-ct", "--costs_per_txn", default=True, help="Whether or not to plot the cost per transaction.")
 parser.add_argument("-ru", "--resource_util", default=True, help="Whether or not to plot the resource utilization. Will get switched off anyway if the data is missing.")
+parser.add_argument("-ne", "--no_extraction", default=True, help="Whether to skip extraction and just run the actual plotting")
 
 args = parser.parse_args()
 scenario = args.scenario
@@ -47,12 +48,36 @@ workload = args.workload
 env = args.environment
 instance_type = args.instance_type
 skip_aborts = args.skip_aborts
+latency_percentiles_list = args.latency_percentiles_list
 use_raw_tps = args.use_raw_tps
 separate_latencies = args.separate_latencies
 latency_ablation = args.latency_ablation
 log_latencies = args.log_latencies
 costs_per_txn = args.costs_per_txn
 resource_util = args.resource_util
+no_extraction = args.no_extraction
+
+latency_percentiles_list = [int(perc) for perc in args.latency_percentiles_list.split(';')]
+
+if no_extraction:
+    if scenario == 'vary_hw' or scenario == 'server_skew':
+        eval_systems.make_bar_plot(plot=scenario,
+                                workload=workload,
+                                env=env,
+                                latency_percentiles=latency_percentiles_list,
+                                skip_aborts=skip_aborts,
+                                separate_latencies=separate_latencies,
+                                log_latencies=log_latencies,
+                                costs_per_txn=costs_per_txn)
+    else:
+        eval_systems.make_plot(plot=scenario,
+                            workload=workload,
+                            env=env,
+                            latency_percentiles=latency_percentiles_list,
+                            skip_aborts=skip_aborts,
+                            separate_latencies=separate_latencies,
+                            log_latencies=log_latencies,
+                            costs_per_txn=costs_per_txn)
 
 print(f"Extracting data for scenario: '{scenario}', workload: '{workload}' and environment: '{env}'")
 
@@ -402,6 +427,10 @@ for system in system_dirs:
             if system.split('/')[-1] == 'crdb':
                 cur_input_throughput = throughputs[system.split('/')[-1]][x_val.split('/')[-1]] # CRDB client doesn't report the sent transactions. We just use the output throughput from the single client exp, and scale later.
             input_throughputs[system.split('/')[-1]][x_val.split('/')[-1]] += cur_input_throughput
+        # Make tpmC -> txns/s conversion
+        if system.split('/')[-1] == 'crdb' and workload == 'tpcc':
+            throughputs[system.split('/')[-1]][x_val.split('/')[-1]] = (throughputs[system.split('/')[-1]][x_val.split('/')[-1]] / 60) * (100 / 45)
+            input_throughputs[system.split('/')[-1]][x_val.split('/')[-1]] = (input_throughputs[system.split('/')[-1]][x_val.split('/')[-1]] / 60) * (100 / 45)
     # Compute the 'max' possible input throughput scaling from the single client config
     if scenario == 'scalability':
         for x_val in x_vals:
@@ -900,12 +929,11 @@ if latency_ablation:
     df_latency_ablations.to_csv(LATENCY_ABALATION_CSV_PATH, index=False)
 
 # Create plots directly
-latencies = [int(latency) for latency in args.latency_percentiles.split(';')]
 if scenario == 'vary_hw' or scenario == 'server_skew':
     eval_systems.make_bar_plot(plot=scenario,
                                workload=workload,
                                env=env,
-                               latency_percentiles=latencies,
+                               latency_percentiles=latency_percentiles_list,
                                skip_aborts=skip_aborts,
                                separate_latencies=separate_latencies,
                                log_latencies=log_latencies,
@@ -914,7 +942,7 @@ else:
     eval_systems.make_plot(plot=scenario,
                            workload=workload,
                            env=env,
-                           latency_percentiles=latencies,
+                           latency_percentiles=latency_percentiles_list,
                            skip_aborts=skip_aborts,
                            separate_latencies=separate_latencies,
                            log_latencies=log_latencies,

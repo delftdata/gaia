@@ -94,6 +94,13 @@ def make_plot(plot='baseline', workload='ycsb', env='st', latency_percentiles=[5
             'Data transfers (GB/s)',
             'Hourly Cost ($/h)'
         ]
+        y_labels_crdb = [
+            'Throughput CRDB',
+            'Latency CRDB',
+            'Aborts CRDB',
+            'Data transfers CRDB',
+            'Hourly Cost CRDB'
+        ]
         if separate_latencies:
             subplot_titles = ['Throughput', 'Latency (by txn type)', 'Aborts', 'Data transfers', 'Cost']
         else:
@@ -106,6 +113,12 @@ def make_plot(plot='baseline', workload='ycsb', env='st', latency_percentiles=[5
             'Data transfers\n(GB/s)',
             'Hourly Cost ($/h)'
         ]
+        y_labels_crdb = [
+            'Throughput\nCRDB',
+            'Latency\nCRDB',
+            'Data transfers\nCRDB',
+            'Hourly Cost CRDB'
+        ]
         if separate_latencies:
             subplot_titles = ['Throughput', 'Latency (by txn type)', 'Data transfers', 'Cost']
         else:
@@ -114,6 +127,7 @@ def make_plot(plot='baseline', workload='ycsb', env='st', latency_percentiles=[5
     if costs_per_txn:
         subplot_titles[-1] = 'Cost per 10k txns'
         y_labels[-1] = 'Cost per\n10k txns (¢)'
+        y_labels_crdb[-1] = 'Cost per\n10k txns CRDB'
     if workload == 'tpcc':
         subplot_titles = ['' for title in subplot_titles] # We don't want to duplicate and clutter the plot
 
@@ -122,13 +136,14 @@ def make_plot(plot='baseline', workload='ycsb', env='st', latency_percentiles=[5
     colors = ['tab:blue', 'tab:orange', 'tab:green', 'tab:red', 'tab:brown']
 
     # Configure Matplotlib global font size
+    fs = 8
     plt.rcParams.update({
-        'font.size': 12,        # Increase font size for better readability
-        'axes.titlesize': 12,
-        'axes.labelsize': 12,
-        'xtick.labelsize': 10,
-        'ytick.labelsize': 10,
-        'legend.fontsize': 10
+        'font.size': 9,        # Increase font size for better readability
+        'axes.titlesize': 10,
+        'axes.labelsize': 9,
+        'xtick.labelsize': fs,
+        'ytick.labelsize': fs,
+        'legend.fontsize': 9
     })
 
     # Create figure and subplots
@@ -137,9 +152,16 @@ def make_plot(plot='baseline', workload='ycsb', env='st', latency_percentiles=[5
     else:
         fig, axes = plt.subplots(1, len(metrics), figsize=(15, 2.5), sharex=True)
 
-    for ax, metric, y_label, subplot_title in zip(axes, metrics, y_labels, subplot_titles):
+    for ax, metric, y_label, subplot_title, crdb_ylabel in zip(axes, metrics, y_labels, subplot_titles, y_labels_crdb):
+        # 1. Create the twin axis for this specific subplot
+        if metric != 'latency':
+            ax_twin = ax.twinx()
+            #ax_twin.set_ylabel(f'CRDB {y_label.split()[-1]}', color='tab:brown')
+            ax_twin.tick_params(axis='y')
         min_latency = 1_000_000_000
         for db, color, style in zip(databases, colors, line_styles):
+            # Determine which axis to use
+            current_ax = ax_twin if db == 'CockroachDB' else ax
             if plot == 'scalability':
                 column_name = f'{db}_input_throughput'
                 if column_name.lower() in data.columns:
@@ -150,7 +172,10 @@ def make_plot(plot='baseline', workload='ycsb', env='st', latency_percentiles=[5
                 if column_name.lower() in data.columns:  # Plot only if the column exists in the CSV
                     if metric == 'bytes':
                         data[column_name.lower()] = data[column_name.lower()] / 1_000_000_000
-                    ax.plot(xaxis_points[data[column_name.lower()].notnull()], data[data[column_name.lower()].notnull()][column_name.lower()],label=db, color=color, linestyle=style)
+                    current_ax.plot(xaxis_points[data[column_name.lower()].notnull()], data[data[column_name.lower()].notnull()][column_name.lower()], label=db, color=color, linestyle=style)
+                    # This is just a hack to keep CRDB in the legend
+                    if db == 'CockroachDB':
+                        ax.plot([-1], [-1],label=db, color=color, linestyle=style)
             else:
                 cur_colors = [lighten_color(color=color, factor=0.5), mcolors.to_rgb(color), darken_color(color=color, factor=0.5)]
                 if separate_latencies:
@@ -176,11 +201,16 @@ def make_plot(plot='baseline', workload='ycsb', env='st', latency_percentiles=[5
             ax.set_xlabel(x_lab)
         ax.set_ylabel(y_label)
         ax.grid(True)
+        if metric != 'latency':
+            ax_twin.set_ylim(bottom=0)
+            ax_twin.set_ylabel(crdb_ylabel)
         if workload == 'ycsb':
             if plot == 'baseline':
                 ax.set_xticks(np.linspace(0, 100, 6))  # 0%, 20%, ..., 100%
                 ax.set_xlim(0, 100)
                 ax.minorticks_off()
+                if metric == 'throughput':
+                    ax_twin.set_ylim(0, 10000)
             elif plot == 'skew':
                 ax.set_xticks(np.linspace(0.0, 1.0, 6))  # 0.0, 0.2, ..., 1.0
                 ax.set_xlim(0, 1)
@@ -189,7 +219,8 @@ def make_plot(plot='baseline', workload='ycsb', env='st', latency_percentiles=[5
                     ax.set_xlim(left=0, right=200_000)
                     ax.minorticks_off()
                     if metric == 'throughput':
-                        ax.set_ylim(top=75_000)
+                        ax.set_ylim(top=50_000)
+                        ax_twin.set_ylim(0, 15000)
                     elif metric == 'latency':
                         ax.set_ylim(top=100000)
                     elif metric == 'bytes':
@@ -205,8 +236,12 @@ def make_plot(plot='baseline', workload='ycsb', env='st', latency_percentiles=[5
                         ax.set_ylim(top=0.25)
             elif plot == 'network':
                 ax.set_xlim(left=0, right=1000)
+                if metric == 'throughput':
+                    ax_twin.set_ylim(0, 10000)
             elif plot == 'packet_loss':
                 ax.set_xlim(0, 10)
+                if metric == 'throughput':
+                    ax_twin.set_ylim(0, 10000)
             elif plot == 'sunflower':
                 ax.set_xticks(np.linspace(0.0, 1.0, 6))  # 0.0, 0.2, ..., 1.0
                 ax.set_xlim(0, 1)
@@ -215,6 +250,8 @@ def make_plot(plot='baseline', workload='ycsb', env='st', latency_percentiles=[5
                 ax.set_xticks(np.linspace(0, 100, 6))  # 0%, 20%, ..., 100%
                 ax.set_xlim(0, 100)
                 ax.minorticks_off()
+                if metric == 'throughput':
+                    ax_twin.set_ylim(0, 1200)
             elif plot == 'skew':
                 ax.set_xticks(np.linspace(0.0, 1.0, 6))  # 0.0, 0.2, ..., 1.0
                 ax.set_xlim(0, 1)
@@ -222,14 +259,19 @@ def make_plot(plot='baseline', workload='ycsb', env='st', latency_percentiles=[5
                 ax.set_xlim(left=0, right=60_000)
                 if metric == 'throughput':
                     ax.set_ylim(top=40_000)
+                    ax_twin.set_ylim(0, 900)
                 elif metric == 'bytes':
                     if env == 'st':
                         ax.set_ylim(top=0.2)
                 ax.minorticks_off()
             elif plot == 'network':
                 ax.set_xlim(left=0, right=1000)
+                if metric == 'throughput':
+                    ax_twin.set_ylim(0, 1200)
             elif plot == 'packet_loss':
                 ax.set_xlim(0, 10)
+                if metric == 'throughput':
+                    ax_twin.set_ylim(0, 1200)
             elif plot == 'sunflower':
                 ax.set_xticks(np.linspace(0.0, 1.0, 6))  # 0.0, 0.2, ..., 1.0
                 ax.set_xlim(0, 1)
@@ -326,10 +368,14 @@ def make_plot(plot='baseline', workload='ycsb', env='st', latency_percentiles=[5
                 ax.set_ylim(bottom=1)
         if metric == 'cost' and plot == 'scalability':
             ax.set_ylim(0,10)
+            ax_twin.set_ylim(0,50)
             if workload == 'ycsb':
                 ax.set_ylim(0,5)
+                ax_twin.set_ylim(0,10)
         elif metric == 'throughput':
             ax.yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, pos: f'{x/1000:.0f}k'))
+            if workload == 'ycsb':
+                ax_twin.yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, pos: f'{x/1000:.0f}k'))
         if plot == 'scalability':
             ax.xaxis.set_major_formatter(ticker.FuncFormatter(lambda x, pos: f'{x/1000:.0f}k'))
 
@@ -350,9 +396,9 @@ def make_plot(plot='baseline', workload='ycsb', env='st', latency_percentiles=[5
         f'{WORKLOAD_CAPITALIZATION[workload]} ({workload_type})',        # the label text
         va='center', ha='center', # center vertically
         rotation='vertical',      # vertical orientation
-        fontsize=14, fontweight='bold'
+        fontsize=12, fontweight='bold'
     )
-    plt.tight_layout(rect=[0.04, 0, 1, 1])  # Further reduce whitespace
+    plt.tight_layout(rect=[0.03, 0, 1, 1])  # Further reduce whitespace
 
     # Save figures
     output_path = f'plots/output/{env}/{workload}/{plot}_{workload}'
@@ -383,24 +429,37 @@ def make_bar_plot(plot='vary_hw', workload='ycsb', env='st', latency_percentiles
             'Throughput\n(txn/s)',
             'Latency (ms)',
             'Aborts (%)',
-            'Data\ntransfers\n(GB/s)',
+            'Data transfers\n(GB/s)',
             'Hourly Cost ($/h)'
         ]
-
+        y_labels_crdb = [
+            'Throughput\nCRDB',
+            'Latency\nCRDB',
+            'Aborts\nCRDB',
+            'Data transfers\nCRDB',
+            'Hourly Cost CRDB'
+        ]
         subplot_titles = ['Throughput', 'Latency (log scale)', 'Aborts', 'Data transfers', 'Cost']
     else:
         metrics = ['throughput', 'latency', 'bytes', 'cost']
         y_labels = [
             'Throughput\n(txn/s)',
             'Latency (ms)',
-            'Data\ntransfers\n(GB/s)',
+            'Data transfers\n(GB/s)',
             'Hourly Cost ($/h)'
         ]
+        y_labels_crdb = [
+            'Throughput\nCRDB',
+            'Latency\nCRDB',
+            'Data transfers\nCRDB',
+            'Hourly Cost CRDB'
+        ]
         subplot_titles = ['Throughput', 'Latency (log scale)', 'Data transfers', 'Cost']
-    
+
     if costs_per_txn:
         subplot_titles[-1] = 'Cost per 10k txns'
         y_labels[-1] = 'Cost per\n10k txns (¢)'
+        y_labels_crdb[-1] = 'Cost per\n10k txns CRDB'
     if workload == 'tpcc' and env == 'aws':
         subplot_titles = ['' for title in subplot_titles] # We don't want to duplicate and clutter the plot
 
@@ -411,12 +470,12 @@ def make_bar_plot(plot='vary_hw', workload='ycsb', env='st', latency_percentiles
     # Configure Matplotlib global font size
     fs = 8
     plt.rcParams.update({
-        'font.size': 12,        # Increase font size for better readability
-        'axes.titlesize': 12,
-        'axes.labelsize': 12,
+        'font.size': 9,        # Increase font size for better readability
+        'axes.titlesize': 10,
+        'axes.labelsize': 9,
         'xtick.labelsize': fs,
         'ytick.labelsize': fs,
-        'legend.fontsize': 10
+        'legend.fontsize': 9
     })
 
     # Create figure and subplots
@@ -431,24 +490,34 @@ def make_bar_plot(plot='vary_hw', workload='ycsb', env='st', latency_percentiles
         fig, axes = plt.subplots(1, len(metrics), figsize=(15, 2.3), sharex=True)
 
     default_xaxis_points = [-2*BAR_WIDTH + x for x in range(len(xaxis_points))]
-    for ax, metric, y_label, subplot_title in zip(axes, metrics, y_labels, subplot_titles):
+    for ax, metric, y_label, subplot_title, crdb_ylabel in zip(axes, metrics, y_labels, subplot_titles, y_labels_crdb):
+        # 1. Create the twin axis for this specific subplot
+        if metric != 'latency':
+            ax_twin = ax.twinx()
+            #ax_twin.set_ylabel(f'CRDB {y_label.split()[-1]}', color='tab:brown')
+            ax_twin.tick_params(axis='y')
         min_latency = 1_000_000_000 # Small hack to get a 100% overboard value
         for db, color, style, i in zip(databases, colors, line_styles, range(len(databases))):
+            # Determine which axis to use
+            current_ax = ax_twin if db == 'CockroachDB' else ax
             cur_x_axis_points = [x+i*BAR_WIDTH for x in default_xaxis_points]
             if metric != 'latency' and metric != 'cost':
                 column_name = f'{db}_{metric}'
                 if column_name.lower() in data.columns:  # Plot only if the column exists in the CSV
                     if metric == 'bytes':
                         data[column_name.lower()] = data[column_name.lower()] / 1_000_000_000
-                    ax.bar(cur_x_axis_points, data[column_name.lower()], width=BAR_WIDTH, label=db, color=color, edgecolor='#000000')
+                    current_ax.bar(cur_x_axis_points, data[column_name.lower()], width=BAR_WIDTH, label=db, color=color, edgecolor='#000000')
             elif metric == 'cost':
                 cur_colors = [mcolors.to_rgb(color), lighten_color(color=color, factor=0.5)]
                 column_name = f'{db}_fixed_cost'
                 if column_name.lower() in data.columns:  # Plot only if the column exists in the CSV
-                    ax.bar(cur_x_axis_points, data[column_name.lower()], width=BAR_WIDTH, label=db, color=cur_colors[0], edgecolor='#000000')
+                    # This is just a hack to keep CRDB in the legend
+                    if db == 'CockroachDB':
+                        ax.bar(cur_x_axis_points[0], [0], width=BAR_WIDTH, label=db, color=color, edgecolor='#000000')
+                    current_ax.bar(cur_x_axis_points, data[column_name.lower()], width=BAR_WIDTH, label=db, color=cur_colors[0], edgecolor='#000000')
                     min_latency = min(min_latency, min(data[column_name.lower()]))
                     next_column_name = f'{db}_cost'
-                    ax.bar(cur_x_axis_points, data[next_column_name.lower()]-data[column_name.lower()], bottom=data[column_name.lower()], width=BAR_WIDTH, color=cur_colors[1], edgecolor='#000000')
+                    current_ax.bar(cur_x_axis_points, data[next_column_name.lower()]-data[column_name.lower()], bottom=data[column_name.lower()], width=BAR_WIDTH, color=cur_colors[1], edgecolor='#000000')
                 pass
             else:
                 cur_colors = [mcolors.to_rgb(color), lighten_color(color=color, factor=0.5)]
@@ -478,10 +547,26 @@ def make_bar_plot(plot='vary_hw', workload='ycsb', env='st', latency_percentiles
             ax.set_xlabel(x_lab)
         ax.set_ylabel(y_label)
         x = np.arange(len(xaxis_points))
+        if metric != 'latency':
+            ax_twin.set_ylim(bottom=0)
+            ax_twin.set_ylabel(crdb_ylabel)
+            if metric == 'throughput':
+                if plot == 'baseline':
+                    ax_twin.set_ylim(0, 500)
+                elif plot == 'vary_hw':
+                    if workload == 'ycsb':
+                        ax_twin.set_ylim(0, 14000)
+                    elif workload == 'tpcc':
+                        ax_twin.set_ylim(0, 800)
+                elif plot == 'server_skew':
+                    if workload == 'ycsb':
+                        ax_twin.set_ylim(0, 7500)
+                    elif workload == 'tpcc':
+                        ax_twin.set_ylim(0, 800)
         if plot == 'vary_hw':
             xaxis_points_final = [x[:-5] for x in xaxis_points]
         elif plot == 'server_skew':
-            sever_skew_mappings = {'balanced': 'uniform',
+            sever_skew_mappings = {'balanced': 'unif.',
                                    'us-west+': 'usw+',
                                    'us-west+_eu-west+': 'usw+\neu+',
                                    'us-west++': 'usw++',
@@ -497,6 +582,8 @@ def make_bar_plot(plot='vary_hw', workload='ycsb', env='st', latency_percentiles
             ax.set_ylim(bottom=1)
         if metric == 'throughput':
             ax.yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, pos: f'{x/1000:.0f}k'))
+            if workload == 'ycsb':
+                ax_twin.yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, pos: f'{x/1000:.0f}k'))
 
     # Add legend and adjust layout
     handles, labels = axes[-1].get_legend_handles_labels()
@@ -513,9 +600,9 @@ def make_bar_plot(plot='vary_hw', workload='ycsb', env='st', latency_percentiles
         f'{WORKLOAD_CAPITALIZATION[workload]}\n({workload_type})',        # the label text
         va='center', ha='center', # center vertically
         rotation='vertical',      # vertical orientation
-        fontsize=14, fontweight='bold'
+        fontsize=12, fontweight='bold'
     )
-    plt.tight_layout(rect=[0.04, 0, 1, 1])  # Further reduce whitespace
+    plt.tight_layout(rect=[0.03, 0, 1, 1])  # Further reduce whitespace
 
     # Save figures
     output_path = f'plots/output/{env}/{workload}/{plot}_{workload}'
@@ -631,9 +718,9 @@ def make_resource_util_plots(plot='baseline', workload='ycsb', env='st'):
         f'{WORKLOAD_CAPITALIZATION[workload]} Resource\nUtilization',        # the label text
         va='center', ha='center', # center vertically
         rotation='vertical',      # vertical orientation
-        fontsize=14, fontweight='bold'
+        fontsize=12, fontweight='bold'
     )
-    plt.tight_layout(rect=[0.04, 0, 1, 1])  # Further reduce whitespace
+    plt.tight_layout(rect=[0.03, 0, 1, 1])  # Further reduce whitespace
 
     # Save figures
     output_path = f'plots/output/{env}/{workload}/{plot}_{workload}_resource_util'
@@ -704,7 +791,7 @@ def make_resource_util_bar_plots(plot='vary_hw', workload='ycsb', env='st'):
         if plot == 'vary_hw':
             xaxis_points_final = [x[:-5] for x in xaxis_points]
         elif plot == 'server_skew':
-            sever_skew_mappings = {'balanced': 'uniform',
+            sever_skew_mappings = {'balanced': 'unif.',
                                    'us-west+': 'usw+',
                                    'us-west+_eu-west+': 'usw+\neu+',
                                    'us-west++': 'usw++',
@@ -723,9 +810,9 @@ def make_resource_util_bar_plots(plot='vary_hw', workload='ycsb', env='st'):
         f'{WORKLOAD_CAPITALIZATION[workload]} Resource\nUtilization',        # the label text
         va='center', ha='center', # center vertically
         rotation='vertical',      # vertical orientation
-        fontsize=14, fontweight='bold'
+        fontsize=12, fontweight='bold'
     )
-    plt.tight_layout(rect=[0.04, 0, 1, 1])  # Further reduce whitespace
+    plt.tight_layout(rect=[0.03, 0, 1, 1])  # Further reduce whitespace
 
     # Save figures
     output_path = f'plots/output/{env}/{workload}/{plot}_{workload}_resource_util'
@@ -863,9 +950,9 @@ def make_txn_type_ablations(plot='vary_hw', workload='ycsb', env='st', log_laten
         f'{WORKLOAD_CAPITALIZATION[workload]} Latency\nAblations',        # the label text
         va='center', ha='center', # center vertically
         rotation='vertical',      # vertical orientation
-        fontsize=14, fontweight='bold'
+        fontsize=12, fontweight='bold'
     )
-    plt.tight_layout(rect=[0.04, 0, 1, 1])  # Further reduce whitespace
+    plt.tight_layout(rect=[0.03, 0, 1, 1])  # Further reduce whitespace
 
     # Save figures
     output_path = f'plots/output/{env}/{workload}/{plot}_{workload}_latency_ablations'

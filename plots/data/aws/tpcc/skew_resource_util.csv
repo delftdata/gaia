@@ -1,0 +1,12 @@
+x_var,detock_cpu_usage_percent,detock_mem_usage_percent,detock_net_usage_percent,detock_disk_usage_percent,detock_aborts,janus_cpu_usage_percent,janus_mem_usage_percent,janus_net_usage_percent,janus_disk_usage_percent,janus_aborts,calvin_cpu_usage_percent,calvin_mem_usage_percent,calvin_net_usage_percent,calvin_disk_usage_percent,calvin_aborts,slog_cpu_usage_percent,slog_mem_usage_percent,slog_net_usage_percent,slog_disk_usage_percent,slog_aborts
+0.0,,,,,0.0,,,,,0.0,,,,,0.0,,,,,0.0
+0.1,,,,,0.0,,,,,0.0,,,,,0.0,,,,,0.0
+0.2,,,,,0.0,,,,,0.0,,,,,0.0,,,,,0.0
+0.3,,,,,0.0,,,,,0.0,,,,,0.0,,,,,0.0
+0.4,,,,,0.0,,,,,0.0,,,,,0.0,,,,,0.0
+0.5,,,,,0.0,,,,,0.0,,,,,0.0,,,,,0.0
+0.6,,,,,0.0,,,,,0.0,,,,,0.0,,,,,0.0
+0.7,,,,,0.0,,,,,0.0,,,,,0.0,,,,,0.0
+0.8,,,,,0.0,,,,,0.0,,,,,0.0,,,,,0.0
+0.9,,,,,0.0,,,,,0.0,,,,,0.0,,,,,0.0
+1.0,,,,,0.0,,,,,0.0,,,,,0.0,,,,,0.0

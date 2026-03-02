@@ -1,0 +1,6 @@
+x_var,detock_cpu_usage_percent,detock_mem_usage_percent,detock_net_usage_percent,detock_disk_usage_percent,detock_aborts,janus_cpu_usage_percent,janus_mem_usage_percent,janus_net_usage_percent,janus_disk_usage_percent,janus_aborts,cockroachdb_cpu_usage_percent,cockroachdb_mem_usage_percent,cockroachdb_net_usage_percent,cockroachdb_disk_usage_percent,cockroachdb_aborts,calvin_cpu_usage_percent,calvin_mem_usage_percent,calvin_net_usage_percent,calvin_disk_usage_percent,calvin_aborts,slog_cpu_usage_percent,slog_mem_usage_percent,slog_net_usage_percent,slog_disk_usage_percent,slog_aborts
+m5.2xlarge,,,,,0.0,,,,,0.0,,,,,0.0,,,,,0.0,,,,,0.0
+r5.2xlarge,,,,,0.0,,,,,0.0,,,,,0.0,,,,,0.0,,,,,0.0
+m5.4xlarge,,,,,0.0,,,,,0.0,,,,,0.0,,,,,0.0,,,,,0.0
+r5.4xlarge,,,,,0.0,,,,,0.0,,,,,0.0,,,,,0.0,,,,,0.0
+m6i.8xlarge,,,,,0.0,,,,,0.0,,,,,0.0,,,,,0.0,,,,,0.0

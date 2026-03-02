@@ -20,6 +20,9 @@ DEFAULT_AWS_REGION = 'us-west-1'
 MAX_RETRIES = 1000
 
 IPS_FILE = 'aws/ips.json'
+CRDB_CONFIG_FILE = 'aws/aws_crdb.json'
+CRDB_PUBLIC_CONFIG_FILE = 'aws/aws_crdb_public.json'
+CRDB_LICENSE_FILE = 'crdb/crdb_license.json'
 
 KEY_FOLDER = 'keys'
 LOGGING_FILE = 'aws/VM_launch_logging.log'
@@ -27,6 +30,17 @@ LOGGING_FILE = 'aws/VM_launch_logging.log'
 server_instances = []
 client_instances = []
 all_instances = []
+
+region_name_map = {
+    'eu-west-1': 'euw1',
+    'eu-west-2': 'euw2',
+    'us-west-1': 'usw1',
+    'us-west-2': 'usw2',
+    'us-east-1': 'use1',
+    'us-east-2': 'use2',
+    'ap-northeast-1': 'apne1',
+    'ap-northeast-2': 'apne2'
+}
 
 # Helper functions
 def load_config(config_file):
@@ -83,8 +97,72 @@ def ensure_key_pair(region, key_folder):
 
 def launch_instances(config, key_folder, num_servers, num_clients, single_region):
     """
-    Launches one EC2 instance in each region specified in the configuration.
+    Launches EC2 instances and uses UserData to write GitHub credentials to the disk.
     """
+    # 1. Read the credentials locally
+    with open("aws/github_credentials.json", "r") as f:
+        creds_data = json.load(f)
+    # Extract variables for the clone command
+    token = creds_data["token"]
+    username = creds_data["username"]
+
+    # NEW VERSION: Whole setup in UserData
+    # 2. Define the full UserData script
+    # This runs as root on the VM immediately upon boot.
+    user_data_script = f"""#!/bin/bash
+export DEBIAN_FRONTEND=noninteractive
+
+# Write credentials first
+cat <<EOF > /home/ubuntu/github_credentials.json
+{json.dumps(creds_data)}
+EOF
+chown ubuntu:ubuntu /home/ubuntu/github_credentials.json
+
+# Add Python PPA and install system-level packages
+add-apt-repository ppa:deadsnakes/ppa -y
+apt-get update -qq
+apt-get install -y -qq build-essential libssl-dev zlib1g-dev libbz2-dev \
+    libreadline-dev libsqlite3-dev wget curl llvm libncurses5-dev \
+    libncursesw5-dev xz-utils tk-dev libpcap-dev libncurses-dev \
+    autoconf automake libtool pkg-config libffi-dev liblzma-dev \
+    python3-openssl git zip python3.8 python3.8-venv python3.8-dev \
+    net-tools dstat sysstat cmake iftop libpqxx-dev libgoogle-glog-dev
+
+# Docker Installation
+curl -fsSL https://get.docker.com -o get-docker.sh
+sh get-docker.sh
+usermod -aG docker ubuntu
+systemctl start docker
+
+# System Tuning
+bash -c 'cat <<EOF >> /etc/sysctl.conf
+net.core.rmem_max=10485760
+net.core.wmem_max=10485760
+EOF'
+sysctl -p
+
+# Execute User-specific setup as 'ubuntu'
+sudo -u ubuntu -i bash <<'EOF_USER'
+echo "alias python=python3.8" >> ~/.bashrc
+
+# Clone and Checkout
+git clone https://{username}:{token}@github.com/delftdata/Detock.git /home/ubuntu/Detock
+cd /home/ubuntu/Detock
+git checkout before-bsc-merges
+
+# Python Environment
+python3.8 -m venv /home/ubuntu/build_detock
+source /home/ubuntu/build_detock/bin/activate
+pip install --upgrade pip
+pip install --no-cache-dir -r tools/requirements.txt
+
+mkdir -p /home/ubuntu/data
+EOF_USER
+
+# Final Signal for the Python script to know we are done
+echo "{config["server_vm_type"]}" > /home/ubuntu/vm_type.txt
+"""
+    
     for region, _ in ec2_clients.items():
         if single_region:
             region_config = REGIONS[DEFAULT_AWS_REGION]
@@ -107,12 +185,11 @@ def launch_instances(config, key_folder, num_servers, num_clients, single_region
                     MinCount=num_servers,
                     SubnetId=region_config["subnet_id"],
                     SecurityGroupIds=[region_config["sg_id"]],
-                    TagSpecifications=[
-                        {
+                    UserData=user_data_script,  # <--- This triggers the GitHub credentials file creation
+                    TagSpecifications=[{
                             'ResourceType': 'instance',
                             'Tags': [{'Key': 'Name', 'Value': f'DetockVM_{region}'}],
-                        }
-                    ],
+                    }],
                 )
                 instances.extend( # Final VM is for the client
                     ec2_session.create_instances(
@@ -123,12 +200,11 @@ def launch_instances(config, key_folder, num_servers, num_clients, single_region
                         MinCount=num_clients,
                         SubnetId=region_config["subnet_id"],
                         SecurityGroupIds=[region_config["sg_id"]],
-                        TagSpecifications=[
-                            {
+                        UserData=user_data_script,
+                        TagSpecifications=[{
                                 'ResourceType': 'instance',
                                 'Tags': [{'Key': 'Name', 'Value': f'DetockVM_{region}'}],
-                            }
-                        ],
+                            }],
                     )
                 )
                 break
@@ -146,15 +222,11 @@ def launch_instances(config, key_folder, num_servers, num_clients, single_region
         # Rename instances in same region with index to distinuish between them
         for index, instance in enumerate(instances[:-1], start=1):
             unique_name = f'DetockVM_{region}_{index}'
-            instance.create_tags(
-                Tags=[{'Key': 'Name', 'Value': unique_name}]
-            )
+            instance.create_tags(Tags=[{'Key': 'Name', 'Value': unique_name}])
             server_instances.append({"InstanceId": instance.id, "Region": region, "Name": unique_name})
         # Special name for the client VMs
         client_name = f'ClientVM_{region}'
-        instances[-1].create_tags(
-            Tags=[{'Key': 'Name', 'Value': client_name}]
-        )
+        instances[-1].create_tags(Tags=[{'Key': 'Name', 'Value': client_name}])
         client_instances.append({"InstanceId": instances[-1].id, "Region": region, "Name": client_name})
 
 def wait_for_instances(all_instances):
@@ -185,73 +257,40 @@ def wait_for_instances(all_instances):
         public_ips.append(public_ip)
         private_ips.append(private_ip)
         region_ips[region].append({"ip": public_ip, 'private_ip': private_ip, "instance_id": instance_id, "server": 'DetockVM_' in instance["Name"]})
-    
+
+    # Save the IPs to JSON files for later use
     with open(IPS_FILE, 'w') as fp:
         json.dump(region_ips, fp, indent=4)
+    # Public IPs
+    file_lines = ['{']
+    for r in region_ips:
+        reg_str = ''
+        for ip in region_ips[r]:
+            if ip['server']:
+                cur_ip = ip['ip']
+                reg_str += f'"{cur_ip}", '
+        reg_str = reg_str[:-2] # Remove the last comma and space
+        file_lines.append(f'  "{region_name_map[r]}": [{reg_str}],')
+    file_lines[-1] = file_lines[-1][:-1] # Remove the last comma
+    file_lines.append('}')
+    with open(CRDB_PUBLIC_CONFIG_FILE, 'w') as fp:
+        fp.write('\n'.join(file_lines))
+    # Private IPs
+    file_lines = ['{']
+    for r in region_ips:
+        reg_str = ''
+        for ip in region_ips[r]:
+            if ip['server']:
+                cur_ip = ip['private_ip']
+                reg_str += f'"{cur_ip}", '
+        reg_str = reg_str[:-2] # Remove the last comma and space
+        file_lines.append(f'  "{region_name_map[r]}": [{reg_str}],')
+    file_lines[-1] = file_lines[-1][:-1] # Remove the last comma
+    file_lines.append('}')
+    with open(CRDB_CONFIG_FILE, 'w') as fp:
+        fp.write('\n'.join(file_lines))
 
     return public_ips, private_ips, region_ips
-
-def setup_vm(public_ip, key_path, github_credentials, server_vm_type='r5.4xlarge'):
-    """
-    Clone the repository and execute the setup script on a remote VM.
-    """
-    print(f"Setting up VM at {public_ip}...")
-    ssh = paramiko.SSHClient()
-    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-
-    try:
-        ssh.connect(hostname=public_ip, username="ubuntu", key_filename=key_path)
-
-        # Transfer GitHub credentials
-        sftp = ssh.open_sftp()
-        sftp.put("aws/github_credentials.json", "/home/ubuntu/github_credentials.json")
-        sftp.close()
-        print("GitHub credentials transferred.")
-
-        # Clone Detock repository
-        clone_command = """
-        export GIT_ASKPASS=/bin/echo &&
-        echo {} > /tmp/token &&
-        git clone https://{}:{}@github.com/anon/anon.git
-        """.format(github_credentials["token"], github_credentials["username"], github_credentials["token"])
-        execute_remote_command(ssh, clone_command)
-        print("Detock Repository cloned.")
-
-        # Clone iftop repo
-        # For now let's just estimate the average cost
-        '''clone_command = """
-        export GIT_ASKPASS=/bin/echo &&
-        echo {} > /tmp/token &&
-        git clone https://{}:{}@github.com/anon/anon.git
-        """.format(github_credentials["token"], github_credentials["username"], github_credentials["token"])
-        execute_remote_command(ssh, clone_command)
-        print("Iftop Repository cloned.")'''
-
-        # Run the setup script
-        setup_command = "bash /home/ubuntu/Detock/aws/setup.sh"
-        execute_remote_command(ssh, setup_command)
-        print("Setup script executed.")
-
-    except Exception as e:
-        print(f"⚠️ Error setting up VM {public_ip}: {e}")
-    finally:
-        ssh.close()
-
-def setup_vms(all_instances, single_region, server_vm_type='r5.4xlarge'):
-    # Load GitHub credentials
-    with open("aws/github_credentials.json", "r") as f:
-        github_credentials = json.load(f)
-
-    def setup_task(instance):
-        if single_region:
-            key_path = os.path.join(KEY_FOLDER, f"my_aws_key_{DEFAULT_AWS_REGION}.pem")
-        else:
-            key_path = os.path.join(KEY_FOLDER, f"my_aws_key_{instance['Region']}.pem")
-        setup_vm(instance["PublicIp"], key_path, github_credentials, server_vm_type=server_vm_type)
-
-    # Setup all VMs concurrently
-    with ThreadPoolExecutor() as executor:
-        executor.map(setup_task, all_instances)
 
 def stop_cluster():
     """
@@ -371,8 +410,6 @@ def update_conf_file_ips(database_configs="aws/conf_files"):
                         priv_ip = ip['private_ip']
                         private_addresses.append(priv_ip)
                         public_addresses.append(pub_ip)
-                        #current_region_ip_lines.append(f'    addresses: "{priv_ip}",')
-                        #current_region_ip_lines.append(f'    public_addresses: "{pub_ip}",')
                     else:
                         client_address = ip['ip']
                 for priv_ip in private_addresses:
@@ -446,7 +483,30 @@ def copy_conf_files_to_client(database_configs, region_ips):
         if not vm['server']:
             ip = vm['ip']
     pem_path=f'keys/my_aws_key_{DEFAULT_AWS_REGION}.pem'
+
+    # Wait for UserData setup to finish on this specific VM
+    print(f"Waiting for setup to finish on client {ip}...")
+    ssh = paramiko.SSHClient()
+    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    setup_ready = False
+    while not setup_ready:
+        try:
+            ssh.connect(hostname=ip, username=USER, key_filename=pem_path, timeout=5)
+            # Check if the signal file exists
+            stdin, stdout, stderr = ssh.exec_command("ls /home/ubuntu/vm_type.txt")
+            if stdout.channel.recv_exit_status() == 0:
+                print(f"✅ Setup confirmed finished on {ip}. Proceeding with file copy.")
+                setup_ready = True
+            else:
+                print(f"Still waiting for setup on {ip}... (sleeping for 10s)")
+                time.sleep(10) # Wait 10s before checking again
+            ssh.close()
+        except Exception:
+            # SSH might not be up yet, or connection refused
+            time.sleep(5)
+
     remote_path_basic = f'{USER}@{ip}:Detock/aws/'
+    # Copy over basic conf files
     copy_conf_files_cmd = ['scp', '-i', pem_path, '-o', 'StrictHostKeyChecking=no', '-r', database_configs, remote_path_basic]
     print(f"Copying over updated conf files with command: {copy_conf_files_cmd}")
     result = sp.run(copy_conf_files_cmd, check=True, capture_output=True)
@@ -479,6 +539,30 @@ def copy_conf_files_to_client(database_configs, region_ips):
         print(f"⚠️ Failed to copy tpcc latency breakdown conf files with error: {result.stderr}")
     else:
         print("✅ Copied over tpcc latency breakdown conf files sucessfully!")
+    # Copy CRDB config JSON over
+    copy_crdb_config_cmd = ['scp', '-i', pem_path, '-o', 'StrictHostKeyChecking=no', '-r', CRDB_CONFIG_FILE, remote_path_basic]
+    print(f"Copying over updated CRDB config file with command: {copy_crdb_config_cmd}")
+    result = sp.run(copy_crdb_config_cmd, check=True, capture_output=True)
+    if result.returncode != 0:
+        print(f"⚠️ Failed to copy CRDB config file with error: {result.stderr}")
+    else:
+        print("✅ Copied over CRDB config file sucessfully!")
+    # Copy CRDB public config JSON over
+    copy_crdb_config_cmd = ['scp', '-i', pem_path, '-o', 'StrictHostKeyChecking=no', '-r', CRDB_PUBLIC_CONFIG_FILE, remote_path_basic]
+    print(f"Copying over updated CRDB public config file with command: {copy_crdb_config_cmd}")
+    result = sp.run(copy_crdb_config_cmd, check=True, capture_output=True)
+    if result.returncode != 0:
+        print(f"⚠️ Failed to copy CRDB public config file with error: {result.stderr}")
+    else:
+        print("✅ Copied over CRDB public config file sucessfully!")
+    # Copy CRDB license JSON over
+    copy_crdb_license_cmd = ['scp', '-i', pem_path, '-o', 'StrictHostKeyChecking=no', '-r', CRDB_LICENSE_FILE, remote_path_basic]
+    print(f"Copying over updated CRDB license file with command: {copy_crdb_license_cmd}")
+    result = sp.run(copy_crdb_license_cmd, check=True, capture_output=True)
+    if result.returncode != 0:
+        print(f"⚠️ Failed to copy CRDB license file with error: {result.stderr}")
+    else:
+        print("✅ Copied over CRDB license file sucessfully!")
 
 def generate_ssh_config(region_ips, single_region, ssh_config_file_path='keys/config', key_dir='~/.ssh'):
     lines = []
@@ -558,7 +642,7 @@ def copy_keys_to_all_vms(region_ips, single_region, key_base_dir='keys/', remote
                     print(f"⚠️ Failed to copy {key_path} to {ip}: {err[0]}")
             print(f"✅ Copied all keys to {ip}")
 
-def spawn_db_service(workload='YCSB', image='USERNAME/seq_eval:latest'):
+def spawn_db_service(workload='YCSB', image='omraz/seq_eval:latest'):
     spawn_db_service_cmd = "python3.8 tools/admin.py start --image {} examples/{}.conf -u ubuntu -e GLOG_v=1"
     if workload == 'YCSB':
         print("Spawning YCSB-T DB service")
@@ -578,7 +662,9 @@ if __name__ == "__main__":
     AWS_ACTIONS = ["start", "status", "setup_db", "stop"]
     #                     Won't run!  8C 32GB HighB  8C 32GB 10B   8C 64GB 10B   8C 64GB 10B    16C 64GB 10B  16C 128GB 10B  16C 64GB 15B   32C 128GB 12.5B
     SUPPORTED_VM_TYPES = ['t2.micro', 'm4.2xlarge',  'm5.2xlarge', 'r5.2xlarge', 'r5a.2xlarge', 'm5.4xlarge', 'r5.4xlarge',  'm8g.4xlarge', 'm6i.8xlarge']
+    # In the Resouce Allocation scenario we used m5.2xlarge (YCSB only), r5.2xlarge, m5.4xlarge, r5.4xlarge, m6i.8xlarge
     # By default we use r5.4xlarge (following Detock's setup)
+    #DEFAULT_VM_TYPE = 'r5.4xlarge'
     DEFAULT_VM_TYPE = 'r5.4xlarge'
 
     parser = argparse.ArgumentParser(description="AWS Cluster Management Script")
@@ -586,7 +672,7 @@ if __name__ == "__main__":
     parser.add_argument("-rc", "--regions_config", default="aws/aws_large.json", help="Path to the AWS regions config file.")
     parser.add_argument("-dc", "--database_configs", default="aws/conf_files", help="Path to the folder with all conf files for the experiment.")
     parser.add_argument("-sc", "--system_config", default="aws/conf_files/ycsb/tu_cluster_ycsb_ddr_ts.conf", help="Path to the conf file for the db system to launch.")
-    parser.add_argument("-i",  "--image", default="USERNAME/seq_eval:latest", help="Docker image to use.")
+    parser.add_argument("-i",  "--image", default="omraz/seq_eval:latest", help="Docker image to use.")
     parser.add_argument("-ns", "--num_servers", default=2, type=int, help="No. of server instances to spawn per region.")
     parser.add_argument("-nc", "--num_clients", default=1, type=int, help="No. of client instances to spawn per region.")
     parser.add_argument("-sm", "--server_vm_type", default=DEFAULT_VM_TYPE, choices=SUPPORTED_VM_TYPES, help="AWS VM type to use for the experiment.")
@@ -628,7 +714,6 @@ if __name__ == "__main__":
         all_instances += server_instances
         all_instances += client_instances
         public_ips, private_ips, region_ips = wait_for_instances(all_instances)
-        setup_vms(all_instances, single_region, server_vm_type=server_vm_type)
         test_connectivity_between_regions(region_ips, single_region=single_region)
         update_conf_file_ips(database_configs=database_configs)
         copy_conf_files_to_client(database_configs, region_ips)

@@ -1,5 +1,5 @@
 {
-    "aws_username": "USERNAME",
+    "aws_username": "omraz",
     "unused_regions": {
         "eu-west-1": {
             "ami_id": "ami-0d64bb532e0502c46",

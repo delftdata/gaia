@@ -22,11 +22,11 @@ Use instructions from `crdb/README.md` to spawn up and populate a CRDB cluster.
 
 To run an experiment with CRDB use the command:
 
-`python3 tools/run_config_on_remote.py -i omraz/seq_eval:crdb_benchmark -m ubuntu@13.57.48.178 -s packet_loss -w ycsb -c aws/conf_files/ycsb/aws_ycsb_crdb.conf -u ubuntu -bl True -db crdb 2>&1 | tee scenario_$(date +"%d-%m-%y_%H-%M-%S").log`
+`python3 tools/run_config_on_remote.py -i omraz/seq_eval:crdb_benchmark -m ubuntu@3.101.34.10 -s vary_hw -w ycsb -c aws/conf_files/ycsb/aws_ycsb_crdb.conf -u ubuntu -bl True -db crdb 2>&1 | tee scenario_$(date +"%d-%m-%y_%H-%M-%S").log`
 
 And for TPC-C:
 
-`python3 tools/run_config_on_remote.py -i omraz/seq_eval:crdb-custom -m ubuntu@13.57.7.248 -s packet_loss -w tpcc -c aws/conf_files/tpcc/aws_tpcc_crdb.conf -u ubuntu -bl True -db crdb 2>&1 | tee scenario_$(date +"%d-%m-%y_%H-%M-%S").log`
+`python3 tools/run_config_on_remote.py -i omraz/seq_eval:crdb-custom -m ubuntu@3.101.34.10 -s vary_hw -w tpcc -c aws/conf_files/tpcc/aws_tpcc_crdb.conf -u ubuntu -bl True -db crdb 2>&1 | tee scenario_$(date +"%d-%m-%y_%H-%M-%S").log`
 
 ## AWS Cloud Console setup
 

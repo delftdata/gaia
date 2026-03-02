@@ -1,79 +1,51 @@
-sudo apt update
+#!/bin/bash
 
-# TODO: Check if autoremove is still needed or not
-sudo apt-get install -y build-essential libssl-dev zlib1g-dev libbz2-dev \
-                        libreadline-dev libsqlite3-dev wget curl llvm \
-                        libncurses5-dev libncursesw5-dev xz-utils tk-dev \
-                        libpcap-dev libncurses-dev autoconf automake libtool pkg-config \
-                        libffi-dev liblzma-dev python3-openssl git
+# Prevent interactive prompts for a smooth background execution
+export DEBIAN_FRONTEND=noninteractive
 
-#Get Python3.8 directly
+# 1. Add Python PPA
 sudo add-apt-repository ppa:deadsnakes/ppa -y
-sudo apt update
-sudo apt install python3.8 python3.8-venv -y
-echo "alias python=python3.8" >> .bashrc
-source .bashrc
 
-# Compiling Python from source. Still buggy!!!
-#mkdir ~/python38
-#cd ~/python38
-#wget https://www.python.org/ftp/python/3.8.16/Python-3.8.16.tgz
-#tar -xf Python-3.8.16.tgz
-#cd Python-3.8.16
+# 2. Consolidated update and install
+# Removed GCC/G++ specifics; kept everything else in one fast batch
+sudo apt-get update -qq
+sudo apt-get install -y -qq \
+    build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev \
+    libsqlite3-dev wget curl llvm libncurses5-dev libncursesw5-dev \
+    xz-utils tk-dev libpcap-dev libncurses-dev autoconf automake \
+    libtool pkg-config libffi-dev liblzma-dev python3-openssl git zip \
+    python3.8 python3.8-venv python3.8-dev \
+    net-tools dstat sysstat cmake iftop
 
-#./configure --enable-optimizations
-#make -j$(nproc)
-#sudo make install
-
-#cd ../..
-#echo "alias python=python3.8" >> .bashrc
-#source .bashrc
-
-# Install Docker
-curl -fsSL https://get.docker.com -o get-docker.sh && 
-    sh get-docker.sh && 
-    sudo usermod -aG docker ubuntu
+# 3. Docker Installation (Reverted to your original method)
+curl -fsSL https://get.docker.com -o get-docker.sh
+sh get-docker.sh
+sudo usermod -aG docker ubuntu
 sudo systemctl start docker
 
-# Create Python env
-python3.8 -m venv build_detock
-source build_detock/bin/activate
+# 4. System Tuning (TCP buffers)
+sudo bash -c 'cat <<EOF >> /etc/sysctl.conf
+net.core.rmem_max=10485760
+net.core.wmem_max=10485760
+EOF'
+sudo sysctl -p
 
-sudo apt install net-tools
-sudo apt install dstat -y
-sudo apt install cmake build-essential pkg-config -y
+# 5. Environment Aliases
+echo "alias python=python3.8" >> /home/ubuntu/.bashrc
 
-# Increase TCP buffer for receiving messages at a higher throughput and avoid TCP bottlenecks
-echo "net.core.rmem_max=10485760" | sudo tee -a /etc/sysctl.conf
-echo "net.core.wmem_max=10485760" | sudo tee -a /etc/sysctl.conf
-sudo sysctl -p  # reloads the sysctl settings
-
-# Downgrade GCC compiler to 11 (incase we want to recopile Detock on the AWS VM)
-sudo apt install g++-11 -y
-export CXX=g++-11
-export CC=gcc-11
-
-# If you want to use the default iftop
-sudo apt install iftop
-
-# Compile custom iftop
-#cd iftop
-#chmod +x bootstrap 
-#./bootstrap
-#chmod +x configure 
-#./configure
-#make
-#sudo make install
-#cd ..
-
-# Prepare directory for Docker to mount when launching containers on a remote machine
-mkdir data
-
-# Setups specific for Detock
-cd Detock
-#git checkout f5ae7c2ef4960aae097c32529fa7f22be39bd2c1 # Last commit before problematic PR
+# 6. Detock Setup
+cd /home/ubuntu/Detock
 git checkout before-bsc-merges
 
-# Install libraries
-python3.8 -m pip install --upgrade pip
-pip install -r tools/requirements.txt
+# Create venv and install requirements
+python3.8 -m venv /home/ubuntu/build_detock
+source /home/ubuntu/build_detock/bin/activate
+pip install --upgrade pip
+pip install --no-cache-dir -r tools/requirements.txt
+
+# 7. Final Prep
+mkdir -p /home/ubuntu/data
+sudo apt-get clean
+
+# 8. Final Signal
+touch /home/ubuntu/setup_done

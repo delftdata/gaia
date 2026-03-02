@@ -32,8 +32,8 @@ def collect_metrics(new_folder_path):
 def run_experiment(base_params, experiment_params, super_folder):
     # Construct the benchmark parameters
     benchmark = base_params.get("benchmark", "basic")
-    image = base_params.get("image", "USERNAME/seq_eval:latest")
-    user = base_params.get("user", "USERNAME")
+    image = base_params.get("image", "omraz/seq_eval:latest")
+    user = base_params.get("user", "omraz")
     txns = base_params.get("txns", "10")
     clients = base_params.get("clients", "1")
     duration = base_params.get("duration", "10")

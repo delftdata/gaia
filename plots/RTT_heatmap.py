@@ -73,7 +73,7 @@ data.index = [short_region_map[name] for name in data.index]
 data = data.reindex(index=ordered_regions, columns=ordered_regions)
 
 # Plot the heatmap
-plt.figure(figsize=(5, 2.5))
+plt.figure(figsize=(5, 2.1))
 ax = sns.heatmap(
     data=data,  # Plot the rounded numpy data
     #annot=annot,        # Custom annotation matrix

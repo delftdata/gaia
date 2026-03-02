@@ -38,12 +38,27 @@ workload = args.workload
 env = args.env
 sytem = args.system
 
+START_CUTOFF_NODE = 10
+END_CUTOFF_NODE = 90
+START_CUTOFF_REGION = 12
+END_CUTOFF_REGION = 120
+
+NODE_FAIL_START = 25
+NODE_FAIL_END = 60
+REGION_FAIL_START = 30
+REGION_FAIL_END = 60
+
 if exp == 'combined':
     print("For the combined experiment, we will plot both the region failure and prime node failure experiments together for comparison.")
-    fig, axes = plt.subplots(1, 2, figsize=(8, 2.2), sharex=True)
-
+    fig, axes = plt.subplots(1, 2, figsize=(8, 2), sharex=True)
 
     for ax, scenario in zip(axes, ['prime_node_failure', 'region_failure']):
+        if scenario == 'prime_node_failure':
+            cur_start_cutoff = START_CUTOFF_NODE
+            cur_end_cutoff = END_CUTOFF_NODE
+        else:
+            cur_start_cutoff = START_CUTOFF_REGION
+            cur_end_cutoff = END_CUTOFF_REGION
         raw_data_dir = f'plots/raw_data/{env}/{workload}/fault_tolerance/{sytem}/{scenario}'
 
         client_folders = [join(raw_data_dir, 'client', f) for f in os.listdir(join(raw_data_dir, 'client')) if '.DS_Store' not in f]
@@ -71,7 +86,7 @@ if exp == 'combined':
             center=True, 
             min_periods=1
         ).mean()
-        time_since_start = (failure_client_throughput_smooth.index - failure_client_throughput_smooth.index[0]).total_seconds()
+        time_since_start = (failure_client_throughput_smooth.index - failure_client_throughput_smooth.index[0]).total_seconds() - cur_start_cutoff
         failure_client_throughput_smooth.index = time_since_start
 
         for csv in client_csvs:
@@ -88,25 +103,26 @@ if exp == 'combined':
             center=True, 
             min_periods=1
         ).mean()
-        time_since_start = (all_clients_throughput_smooth.index - all_clients_throughput_smooth.index[0]).total_seconds()
+        time_since_start = (all_clients_throughput_smooth.index - all_clients_throughput_smooth.index[0]).total_seconds() - cur_start_cutoff
         all_clients_throughput_smooth.index = time_since_start
 
         # Only generate 1 entry in the legend
         if scenario == 'region_failure':
             ax.plot(failure_client_throughput_smooth.index, failure_client_throughput_smooth.values, label='Failure Region Throughput', color='red')
             ax.plot(all_clients_throughput_smooth.index, all_clients_throughput_smooth.values, label='Total Throughput', color='blue')
-            ax.vlines(x=15, ymin=0, ymax=max(all_clients_throughput_smooth)*1.1, color='brown', linestyle='--', label='Failure Start/End')
-            ax.vlines(x=45, ymin=0, ymax=max(all_clients_throughput_smooth)*1.1, color='brown', linestyle='--')
+            ax.vlines(x=REGION_FAIL_START-cur_start_cutoff, ymin=0, ymax=max(all_clients_throughput_smooth)*1.1, color='brown', linestyle='--', label='Failure Start/End')
+            ax.vlines(x=REGION_FAIL_END-cur_start_cutoff, ymin=0, ymax=max(all_clients_throughput_smooth)*1.1, color='brown', linestyle='--')
         else:
             ax.plot(failure_client_throughput_smooth.index, failure_client_throughput_smooth.values, color='red')
             ax.plot(all_clients_throughput_smooth.index, all_clients_throughput_smooth.values, color='blue')
-            ax.vlines(x=15, ymin=0, ymax=max(all_clients_throughput_smooth)*1.1, color='brown', linestyle='--')
-            ax.vlines(x=45, ymin=0, ymax=max(all_clients_throughput_smooth)*1.1, color='brown', linestyle='--')
+            ax.vlines(x=NODE_FAIL_START-cur_start_cutoff, ymin=0, ymax=max(all_clients_throughput_smooth)*1.1, color='brown', linestyle='--')
+            ax.vlines(x=NODE_FAIL_END-cur_start_cutoff, ymin=0, ymax=max(all_clients_throughput_smooth)*1.1, color='brown', linestyle='--')
 
         if scenario == 'prime_node_failure':
             scenario = 'Single Node Failure'
         ax.set_title(scenario.replace('_', ' ').title())
-        ax.set_xlim(0, 60)
+        right_x_lim = min(END_CUTOFF_NODE-START_CUTOFF_NODE, END_CUTOFF_REGION-START_CUTOFF_REGION)
+        ax.set_xlim(0, right_x_lim)
         ax.set_ylim(0, max(all_clients_throughput_smooth)*1.1)
         ax.set_ylabel('Throughput (txn/s)')
         ax.set_xlabel('Time (s)')
@@ -171,7 +187,7 @@ else:
     # Set up figure
     plt.rcParams.update({'font.size': 12})
     #matplotlib.use('TkAgg')
-    fig = plt.figure(figsize=(8, 4))
+    fig = plt.figure(figsize=(8, 2))
 
     plt.plot(failure_client_throughput_smooth.index, failure_client_throughput_smooth.values, label='Failure Region Throughput', color='red')
     plt.plot(all_clients_throughput_smooth.index, all_clients_throughput_smooth.values, label='Total Throughput', color='blue')
